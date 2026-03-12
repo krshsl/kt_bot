@@ -1,4 +1,4 @@
-import { NextFunction, Request, RequestHandler,Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { ZodError } from "zod";
 
@@ -19,10 +19,15 @@ export const errorHandler = (
   next: NextFunction, // eslint-disable-line @typescript-eslint/no-unused-vars
 ) => {
   if (err instanceof ApiError) {
-    return res.status(err.statusCode).json({ error: err.message });
+    return res.status(err.statusCode).json({
+      error: err.message,
+      ...(err.err ? { details: err.err } : {}),
+    });
   }
 
   if (err instanceof ZodError) {
+    console.error(err);
+
     const issues = err?.issues.map((issue) => ({
       field: issue.path.join(", "),
       message: issue.message,

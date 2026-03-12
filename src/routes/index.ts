@@ -7,5 +7,5 @@ import user from "./user";
 export const registerRoutes = (app: Express) => {
   app.use("/health", health);
   app.use("/auth", auth);
-  app.use("/user", user);
+  app.use("/org", user);
 };
