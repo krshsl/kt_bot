@@ -6,7 +6,7 @@ import * as schema from "../schemas/user";
 import * as service from "../service/user";
 import { ApiError } from "../utils/error";
 
-export const createUsers = catchAsync(async (req: Request, res: Response) => {
+const create = async (req: Request, upsert: boolean) => {
   if (!req.file || !req.file.buffer) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "CSV file is required");
   }
@@ -15,10 +15,19 @@ export const createUsers = catchAsync(async (req: Request, res: Response) => {
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   if (!id) throw new ApiError(StatusCodes.BAD_REQUEST, "Org ID missing");
 
-  const count = await service.create(req.file.buffer, id);
+  return await service.create(req.file.buffer, id, upsert);
+};
+
+export const createUsers = catchAsync(async (req: Request, res: Response) => {
+  const count = await create(req, false);
   return res
     .status(StatusCodes.CREATED)
     .send(`${count} Users added successfully`);
+});
+
+export const updateUsers = catchAsync(async (req: Request, res: Response) => {
+  const count = await create(req, true);
+  return res.status(StatusCodes.OK).send(`${count} Users modifed successfully`);
 });
 
 export const getUsers = catchAsync(async (req: Request, res: Response) => {

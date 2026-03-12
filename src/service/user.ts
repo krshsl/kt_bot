@@ -5,12 +5,13 @@ import { PassThrough } from "stream";
 import db from "../config/db";
 import { OrgUser } from "../entities/org_user";
 import { Organization } from "../entities/organization";
+import { Phone } from "../entities/phone";
 import * as schema from "../schemas/user";
 import { ApiError } from "../utils/error";
 import { chunk } from "../utils/lib";
-import { Phone } from "../entities/phone";
+import { email } from "zod";
 
-export const create = async (buffer: Buffer, id: string) => {
+export const create = async (buffer: Buffer, id: string, upsert: boolean) => {
   const organization = await db.getRepository(Organization).findOne({
     where: {
       id,
@@ -21,6 +22,7 @@ export const create = async (buffer: Buffer, id: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, "Organization not found");
 
   type UserRow = {
+    update: boolean;
     email: string;
     name: string;
     phone: string;
@@ -45,7 +47,7 @@ export const create = async (buffer: Buffer, id: string) => {
           bufferStream.destroy();
           return reject(result.error);
         }
-        users.push({ ...result.data });
+        users.push({ update: false, ...result.data });
       })
       .on("end", resolve)
       .on("error", (err) => {
@@ -61,35 +63,57 @@ export const create = async (buffer: Buffer, id: string) => {
 
   try {
     return await db.transaction(async (manager) => {
-      let count = 0;
       for (const userChunk of chunk(users, 1000)) {
         const chunkMap = new Map(userChunk.map((r) => [r.email, r]));
-        const result = await manager
+        const userInsert = manager
           .createQueryBuilder()
           .insert()
           .into(OrgUser)
-          .values(userChunk.map(({ email, name }) => ({ email, name, org_id })))
-          .orUpdate(["name"], ["email", "org_id"])
-          .returning(["id", "email"])
-          .execute();
-        result.raw.forEach(({ id, email }: { id: string; email: string }) => {
-          const row = chunkMap.get(email);
-          if (row) row.id = id;
-        });
-        count += result.identifiers.length;
+          .values(
+            userChunk.map(({ email, name }) => ({ email, name, org_id })),
+          );
+        if (upsert) userInsert.orUpdate(["name"], ["email", "org_id"]);
+        else userInsert.orIgnore();
+        const result = await userInsert.returning(["id", "email"]).execute();
+        ((result.raw ?? []) as Pick<OrgUser, "id" | "email">[])
+          .filter(({ id, email }) => id && email)
+          .forEach(({ id, email }) => {
+            const row = chunkMap.get(email);
+            if (row) {
+              row.id = id;
+              row.update = true;
+            }
+          });
       }
 
       for (const userChunk of chunk(users, 1000)) {
-        await manager
+        const chunkMap = new Map(userChunk.map((r) => [r.phone, r]));
+        const phoneInsert = manager
           .createQueryBuilder()
           .insert()
           .into(Phone)
           .values(
-            userChunk.map(({ id, phone }) => ({ phone, user_id: id!, org_id })),
-          )
-          .orUpdate(["phone"], ["user_id", "org_id"])
-          .execute();
+            userChunk
+              .filter(({ id }) => id)
+              .map(({ id, phone }) => ({ phone, user_id: id!, org_id })),
+          );
+        if (upsert) phoneInsert.orUpdate(["phone"], ["user_id", "org_id"]);
+        else phoneInsert.orIgnore();
+        const result = await phoneInsert.returning(["phone"]).execute();
+        ((result.raw ?? []) as Pick<Phone, "phone">[])
+          .filter(({ phone }) => phone)
+          .forEach(({ phone }) => {
+            const row = chunkMap.get(phone);
+            if (row) {
+              row.update = true;
+            }
+          });
       }
+
+      const count = users.reduce(
+        (acc, { update }) => acc + (update ? 1 : 0),
+        0,
+      );
       return count;
     });
   } catch (err) {
