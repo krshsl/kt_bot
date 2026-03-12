@@ -19,8 +19,18 @@ export const signUp = async ({
 }: SignUp) => {
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw new ApiError(StatusCodes.UNAUTHORIZED, error.message);
+  if (!data.user)
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      "User cannot be created",
+    );
 
-  const id = data.user?.id;
+  const isExistingUser = data.user?.identities?.length === 0;
+  if (isExistingUser) {
+    throw new ApiError(StatusCodes.CONFLICT, "Email already in use");
+  }
+
+  const id = data.user.id;
   if (!id)
     throw new ApiError(
       StatusCodes.INTERNAL_SERVER_ERROR,
@@ -30,10 +40,17 @@ export const signUp = async ({
   try {
     await db.transaction(async (manager) => {
       const orgE = manager.create(Organization, { name: organization });
-      const org_id = orgE.id;
       await manager.save(orgE);
-      const phoneE = manager.create(Phone, { phone, org_id });
-      await manager.save(phoneE);
+      const org_id = orgE.id;
+
+      let phoneE = await manager.findOne(Phone, {
+        where: { phone, org_id },
+      });
+      if (!phoneE) {
+        phoneE = manager.create(Phone, { phone, org_id });
+        await manager.save(phoneE);
+      }
+
       const profileE = manager.create(Profile, { id, name, org_id });
       await manager.save(profileE);
     });

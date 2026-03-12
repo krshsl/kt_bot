@@ -9,11 +9,7 @@
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "target": "esnext",
-    "types": [],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
+    "types": ["node", "express"],
 
     // Other Outputs
     "sourceMap": true,
@@ -44,4 +40,5 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
   },
+  "include": ["src/**/*"],
 }

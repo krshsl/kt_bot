@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const signIn = z.object({
   email: z.email(),
-  password: z.string().min(8).max(16),
+  password: z.string().min(8).max(72),
 });
 
 export type SignIn = z.infer<typeof signIn>;
@@ -13,8 +13,8 @@ export const signUp = signIn.extend({
   phone: z
     .string()
     .regex(
-      /^\+[1-9]\d{7,14}$/,
-      "Phone must be in E.164 format e.g. +12345678901",
+      /^\+[1-9]\d{9,14}$/,
+      "Phone must be E.164 format without spaces (e.g., +12345678901)",
     ),
 });
 

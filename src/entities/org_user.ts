@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -16,6 +17,7 @@ export class OrgUser {
   id!: string;
 
   @Column()
+  @Index({ unique: true })
   email!: string;
 
   @Column({ nullable: true })

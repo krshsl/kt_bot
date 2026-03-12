@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany,PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 import { OrgUser } from "./org_user";
 import { Phone } from "./phone";

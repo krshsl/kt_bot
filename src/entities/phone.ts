@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -10,6 +11,7 @@ import { OrgUser } from "./org_user";
 import { Organization } from "./organization";
 
 @Entity("phone")
+@Index(["phone", "user_id", "org_id"], { unique: true })
 export class Phone {
   @PrimaryGeneratedColumn("uuid")
   id!: string;

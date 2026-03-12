@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-import { AuthRequest } from "../middleware/auth";
 import { catchAsync } from "../middleware/error";
 import * as schema from "../schemas/auth";
 import * as service from "../service/auth";
@@ -9,7 +8,7 @@ import * as service from "../service/auth";
 export const signUp = catchAsync(async (req: Request, res: Response) => {
   const result = schema.signUp.parse(req.body);
   await service.signUp(result);
-  return res.status(StatusCodes.CREATED);
+  return res.status(StatusCodes.CREATED).send("User created successfully");
 });
 
 export const signIn = catchAsync(async (req: Request, res: Response) => {
@@ -18,23 +17,23 @@ export const signIn = catchAsync(async (req: Request, res: Response) => {
   return res.json(data);
 });
 
-export const signOut = async (req: AuthRequest, res: Response) => {
-  await service.signOut(req.token);
-  res.json("Signed out successfully");
-};
+export const signOut = catchAsync(async (req: Request, res: Response) => {
+  await service.signOut(req.token!);
+  return res.json("Signed out successfully");
+});
 
-export const refresh = async (req: Request, res: Response) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token)
+export const refresh = catchAsync(async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken)
     return res
       .status(StatusCodes.UNAUTHORIZED)
       .json({ error: "No token provided" });
 
-  const data = await service.refresh(token);
+  const data = await service.refresh(refreshToken);
   return res.json(data);
-};
+});
 
-export const me = async (req: AuthRequest, res: Response) => {
-  const me = await service.getMe(req.user);
+export const getMe = catchAsync(async (req: Request, res: Response) => {
+  const me = await service.getMe(req.user!);
   return res.json(me);
-};
+});
