@@ -14,7 +14,9 @@ export class Profile {
   @Column()
   org_id!: string;
 
-  @ManyToOne(() => Organization, (org) => org.admins)
+  @ManyToOne(() => Organization, (org) => org.admins, {
+    onDelete: "CASCADE",
+  })
   @JoinColumn({ name: "org_id" })
   org!: Organization;
 }

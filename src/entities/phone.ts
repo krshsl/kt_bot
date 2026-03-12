@@ -11,7 +11,7 @@ import { OrgUser } from "./org_user";
 import { Organization } from "./organization";
 
 @Entity("phone")
-@Index(["phone", "user_id", "org_id"], { unique: true })
+@Index(["user_id", "org_id"], { unique: true })
 export class Phone {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
@@ -25,11 +25,15 @@ export class Phone {
   @Column({ nullable: true })
   org_id?: string;
 
-  @ManyToOne(() => OrgUser, (user) => user.phones)
+  @ManyToOne(() => OrgUser, (user) => user.phones, {
+    onDelete: "CASCADE",
+  })
   @JoinColumn({ name: "user_id" })
   user?: OrgUser;
 
-  @ManyToOne(() => Organization, (org) => org.phones)
+  @ManyToOne(() => Organization, (org) => org.phones, {
+    onDelete: "CASCADE",
+  })
   @JoinColumn({ name: "org_id" })
   org?: Organization;
 }
