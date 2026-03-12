@@ -1,6 +1,7 @@
 import { User } from "@supabase/supabase-js";
 import { StatusCodes } from "http-status-codes";
 
+import { userCache } from "../config/cache";
 import db from "../config/db";
 import supabase from "../config/supabase";
 import { Organization } from "../entities/organization";
@@ -8,7 +9,6 @@ import { Profile } from "../entities/profile";
 import { SignUp } from "../schemas/auth";
 import { SignIn } from "../schemas/auth";
 import { ApiError } from "../utils/error";
-import { userCache } from "../config/cache";
 
 export const signUp = async ({
   email,
@@ -44,7 +44,7 @@ export const signUp = async ({
         phones: [{ phone }],
         admins: [{ id, name }],
       });
-      manager.save(orgE);
+      await manager.save(orgE);
     });
   } catch (err) {
     console.error(`User creation failed: ${email}`, err);
@@ -119,5 +119,5 @@ export const getProfile = async (id: string) => {
 export const signOut = async (token: string) => {
   const { error } = await supabase.auth.admin.signOut(token);
   userCache.delete(token);
-  console.error("Error signing out user", error);
+  if (error) console.error("Error signing out user", error);
 };
