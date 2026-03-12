@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn,ManyToOne, PrimaryColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
 
 import { Organization } from "./organization";
 
@@ -14,7 +14,7 @@ export class Profile {
   @Column()
   org_id!: string;
 
-  @ManyToOne(() => Organization, (org) => org.members)
+  @ManyToOne(() => Organization, (org) => org.admins)
   @JoinColumn({ name: "org_id" })
-  organization!: Organization;
+  org!: Organization;
 }

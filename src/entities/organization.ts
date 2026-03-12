@@ -12,12 +12,12 @@ export class Organization {
   @Column()
   name!: string;
 
-  @OneToMany(() => Phone, (phone) => phone.organization)
+  @OneToMany(() => Phone, (phone) => phone.org, { cascade: true })
   phones?: Phone[];
 
-  @OneToMany(() => Profile, (profile) => profile.organization)
-  members?: Profile[];
+  @OneToMany(() => Profile, (profile) => profile.org, { cascade: true })
+  admins?: Profile[];
 
-  @OneToMany(() => OrgUser, (user) => user.organization)
+  @OneToMany(() => OrgUser, (user) => user.org)
   users?: OrgUser[];
 }

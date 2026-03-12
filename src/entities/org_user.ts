@@ -20,16 +20,16 @@ export class OrgUser {
   @Index({ unique: true })
   email!: string;
 
-  @Column({ nullable: true })
-  name?: string;
+  @Column()
+  name!: string;
 
   @Column()
   org_id!: string;
 
   @ManyToOne(() => Organization, (org) => org.users)
   @JoinColumn({ name: "org_id" })
-  organization!: Organization;
+  org!: Organization;
 
-  @OneToMany(() => Phone, (phone) => phone.id)
+  @OneToMany(() => Phone, (phone) => phone.user, { cascade: true })
   phones!: Phone[];
 }

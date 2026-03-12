@@ -31,5 +31,5 @@ export class Phone {
 
   @ManyToOne(() => Organization, (org) => org.phones)
   @JoinColumn({ name: "org_id" })
-  organization?: Organization;
+  org?: Organization;
 }
