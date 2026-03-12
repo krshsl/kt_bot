@@ -12,10 +12,10 @@ export const signUp = signIn.extend({
   organization: z.string().min(1).max(255),
   phone: z
     .string()
-    .regex(
-      /^\+[1-9]\d{9,14}$/,
-      "Phone must be E.164 format without spaces (e.g., +12345678901)",
-    ),
+    .transform((val) => {
+      return val.replace(/[\s\-()]/g, "");
+    })
+    .pipe(z.e164()),
 });
 
 export type SignUp = z.infer<typeof signUp>;

@@ -4,11 +4,11 @@ import { StatusCodes } from "http-status-codes";
 import db from "../config/db";
 import supabase from "../config/supabase";
 import { Organization } from "../entities/organization";
-import { Phone } from "../entities/phone";
 import { Profile } from "../entities/profile";
 import { SignUp } from "../schemas/auth";
 import { SignIn } from "../schemas/auth";
 import { ApiError } from "../utils/error";
+import { userCache } from "../config/cache";
 
 export const signUp = async ({
   email,
@@ -39,20 +39,12 @@ export const signUp = async ({
 
   try {
     await db.transaction(async (manager) => {
-      const orgE = manager.create(Organization, { name: organization });
-      await manager.save(orgE);
-      const org_id = orgE.id;
-
-      let phoneE = await manager.findOne(Phone, {
-        where: { phone, org_id },
+      const orgE = manager.create(Organization, {
+        name: organization,
+        phones: [{ phone }],
+        admins: [{ id, name }],
       });
-      if (!phoneE) {
-        phoneE = manager.create(Phone, { phone, org_id });
-        await manager.save(phoneE);
-      }
-
-      const profileE = manager.create(Profile, { id, name, org_id });
-      await manager.save(profileE);
+      manager.save(orgE);
     });
   } catch (err) {
     console.error(`User creation failed: ${email}`, err);
@@ -73,6 +65,7 @@ export const signIn = async ({ email, password }: SignIn) => {
   if (!data.session || !data.user)
     throw new ApiError(StatusCodes.UNAUTHORIZED, "Unauthorized user");
 
+  userCache.set(data.session.access_token, data.user, { ttl: 5 * 60 * 1000 });
   const me = await getMe(data.user);
   return {
     session: data.session,
@@ -89,6 +82,7 @@ export const refresh = async (token: string) => {
   if (!data.session || !data.user)
     throw new ApiError(StatusCodes.UNAUTHORIZED, "Unauthorized user");
 
+  userCache.set(data.session.access_token, data.user, { ttl: 5 * 60 * 1000 });
   const me = await getMe(data.user);
   return {
     session: data.session,
@@ -110,18 +104,20 @@ export const getMe = async (user: User) => {
 export const getProfile = async (id: string) => {
   const profile = await db.getRepository(Profile).findOne({
     where: { id: id },
-    relations: ["organization"],
+    relations: ["org"],
+    cache: true,
   });
   if (!profile) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
 
   return {
     id: profile.id,
     name: profile.name,
-    organization: profile.organization,
+    organization: profile.org,
   };
 };
 
 export const signOut = async (token: string) => {
   const { error } = await supabase.auth.admin.signOut(token);
+  userCache.delete(token);
   console.error("Error signing out user", error);
 };
